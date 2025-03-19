@@ -1,0 +1,874 @@
+﻿פרויקט מסד נתונים רלציוני בסביבת SQL Server
+
+1. בחירת נושא
+הנושא שנבחר הוא ניהול מערך מסעדות והזמנות
+ הנושא רלוונטי לעולם המסעדנות המודרני שבו יש צורך לנהל מידע מגוון הכולל מסעדות, לקוחות, הזמנות, תשלומים ודירוגים
+
+2. חיפוש מאגר מידע
+הנתונים נאספו ממאגרי מידע קיימים וכוללים רשומות אמיתיות של מסעדות, הזמנות, ותשלומים
+המאגר מאפשר עבודה עם נתונים ריאליים
+
+3. בניית בסיס נתונים 
+
+3.1. יצירת בסיס נתונים חדש
+
+
+CREATE DATABASE RestaurantManagement;
+GO
+USE RestaurantManagement;
+
+
+3.2. יצירת 5 טבלאות מרכזיות:
+
+Restaurants (מסעדות)
+
+מזהה מסעדה, שם המסעדה, סוג המטבח, אזור, קטגוריה.
+מטרה: לאחסן מידע בסיסי על מסעדות.
+מגבלות:
+Primary Key על עמודת RestaurantID.
+NOT NULL על כל העמודות למניעת מידע חסר
+
+Orders (הזמנות)
+
+מזהה הזמנה, מזהה מסעדה, מזהה לקוח, תאריך הזמנה, סכום הזמנה, כמות פריטים
+מטרה: מעקב אחר הזמנות שנעשו בכל מסעדה.
+מגבלות:
+Primary Key על OrderID.
+Foreign Key ל-RestaurantID ו-CustomerID.
+
+Customers (לקוחות)
+
+מזהה לקוח, שם הלקוח
+מטרה: לנהל מידע על הלקוחות בצורה מרוכזת.
+מגבלות: 
+Primary Key על CustomerID.
+NOT NULL על CustomerName.
+מפתח ראשי ומזהה ייחודי ללקוחCustomerID 
+ כאשר מוסיפים נתונים לטבלה אין צורך לציין את הערך עבור העמודה
+  מכיוון שהוא נוצר באופן אוטומטי  
+
+Payments (תשלומים)
+
+מזהה תשלום, מזהה הזמנה, סכום התשלום, אמצעי תשלום
+מטרה: תיעוד פרטי התשלום לכל הזמנה
+מגבלות:
+Primary Key על PaymentID.
+Foreign Key ל-OrderID
+
+Ratings (דירוגים)
+
+מזהה דירוג, מזהה הזמנה, דירוג אוכל, דירוג משלוח
+מטרה: לשפר את השירות על בסיס משוב הלקוחות
+מגבלות:
+Primary Key על RatingID.
+CHECK על ערכי הדירוג (בין 1 ל-5).
+
+
+3.3. קוד יצירת הטבלאות:
+
+
+CREATE TABLE Restaurants (
+    RestaurantID INT PRIMARY KEY,
+    RestaurantName VARCHAR(100) NOT NULL,
+    Cuisine VARCHAR(50) NOT NULL,
+    Zone VARCHAR(20) NOT NULL,
+    Category VARCHAR(20) NOT NULL
+);
+
+CREATE TABLE Customers (
+    CustomerID INT PRIMARY KEY IDENTITY(1,1),
+    CustomerName VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE Orders (
+    OrderID VARCHAR(10) PRIMARY KEY,
+    RestaurantID INT NOT NULL,
+    CustomerID INT NOT NULL,
+    OrderDate DATETIME NOT NULL,
+    QuantityOfItems INT NOT NULL,
+    OrderAmount DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (RestaurantID) REFERENCES Restaurants(RestaurantID),
+    FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID)
+);
+
+CREATE TABLE Payments (
+    PaymentID INT PRIMARY KEY IDENTITY(1,1),
+    OrderID VARCHAR(10) NOT NULL,
+    PaymentMode VARCHAR(50) NOT NULL,
+    Amount DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (OrderID) REFERENCES Orders(OrderID)
+);
+
+CREATE TABLE Ratings (
+    RatingID INT PRIMARY KEY IDENTITY(1,1),
+    OrderID VARCHAR(10) NOT NULL,
+    FoodRating INT CHECK (FoodRating BETWEEN 1 AND 5) NOT NULL,
+    DeliveryRating INT CHECK (DeliveryRating BETWEEN 1 AND 5) NOT NULL,
+    FOREIGN KEY (OrderID) REFERENCES Orders(OrderID)
+);
+
+
+4. הכנסת רשומות
+ להזנת הנתונים השתמשתי בנוסחת  
+ CONCATENATE  
+ב-Excel 
+כדי להכניס אותם בכמות גדולה
+=CONCATENATE("(";A3;",";"'";B3;"'";",";"'";C3;"'";",";D3;",";E3;")";",")
+
+INSERT INTO Restaurants (RestaurantID, RestaurantName, Cuisine, Zone, Category)
+VALUES 
+(6, 'Willies', 'French', 'Zone D', 'Pro'),
+(7, 'AMN', 'North Indian', 'Zone D', 'Ordinary'),
+(8, 'Oslo', 'French', 'Zone B', 'Ordinary'),
+(9, 'Excel Restaurant', 'North Indian', 'Zone D', 'Ordinary'),
+(10, 'Dave Hotel', 'South Indian', 'Zone A', 'Ordinary'),
+(11, 'The Taste', 'French', 'Zone B', 'Pro'),
+(12, 'Ruchi', 'Chinese', 'Zone B', 'Ordinary'),
+(13, 'Veer Restaurant', 'Chinese', 'Zone D', 'Ordinary'),
+(14, 'KSR Hotel', 'Chinese', 'Zone A', 'Pro'),
+(15, 'Vrinda Bhavan', 'North Indian', 'Zone D', 'Ordinary'),
+(16, 'Anand Restaurant', 'African', 'Zone C', 'Ordinary'),
+(17, 'Zam Zam', 'Arabian', 'Zone C', 'Ordinary'),
+(18, 'Ellora', 'African', 'Zone C', 'Pro'),
+(19, 'Sam Hotel', 'Belgian', 'Zone A', 'Ordinary'),
+(20, 'Chew Restaurant', 'Belgian', 'Zone B', 'Ordinary');
+
+
+
+INSERT INTO Orders (OrderID, CustomerName, RestaurantID, OrderDate, QuantityOfItems, OrderAmount, PaymentMode) VALUES
+('OD1', 'Srini', 6, '2022-01-01 23:15:00', 5, 633, 'Debit Card'),
+('OD2', 'Revandh', 13, '2022-01-01 19:21:00', 5, 258, 'Credit Card'),
+('OD3', 'David', 9, '2022-01-01 23:15:00', 7, 594, 'Cash on Delivery'),
+('OD4', 'Selva', 4, '2022-01-01 20:31:00', 5, 868, 'Cash on Delivery'),
+('OD5', 'Vinny', 4, '2022-01-01 11:10:00', 4, 170, 'Debit Card'),
+('OD6', 'Dev', 16, '2022-01-01 14:22:00', 6, 575, 'Cash on Delivery'),
+('OD7', 'Meera', 7, '2022-01-01 20:35:00', 2, 102, 'Credit Card'),
+('OD8', 'Sabeena', 4, '2022-01-01 14:31:00', 4, 321, 'Credit Card'),
+('OD9', 'David', 1, '2022-01-01 13:39:00', 5, 248, 'Debit Card'),
+('OD10', 'Rifa', 12, '2022-01-01 19:21:00', 3, 295, 'Cash on Delivery'),
+('OD11', 'Dev', 10, '2022-01-01 23:58:00', 6, 607, 'Cash on Delivery'),
+('OD12', 'Farhan', 19, '2022-01-01 11:17:00', 7, 916, 'Debit Card'),
+('OD13', 'Suhaib', 5, '2022-01-01 20:35:00', 6, 813, 'Debit Card'),
+('OD14', 'Swamy', 11, '2022-01-01 14:20:00', 5, 525, 'Debit Card'),
+('OD15', 'Sweetie', 12, '2022-01-01 21:31:00', 7, 872, 'Credit Card'),
+('OD16', 'Meera', 1, '2022-01-01 12:19:00', 5, 546, 'Cash on Delivery'),
+('OD17', 'Shifa', 19, '2022-01-01 23:15:00', 7, 757, 'Cash on Delivery'),
+('OD18', 'Selva', 16, '2022-01-01 12:00:00', 1, 80, 'Credit Card'),
+('OD19', 'Srini', 20, '2022-01-01 11:19:00', 6, 692, 'Cash on Delivery'),
+('OD20', 'Swamy', 10, '2022-01-01 21:39:00', 5, 464, 'Cash on Delivery'),
+('OD21', 'Charlie', 3, '2022-01-01 11:10:00', 6, 686, 'Cash on Delivery'),
+('OD22', 'Suhaib', 1, '2022-01-01 17:39:00', 7, 630, 'Cash on Delivery'),
+('OD23', 'Meera', 1, '2022-01-01 14:31:00', 1, 28, 'Debit Card'),
+('OD24', 'Dev', 16, '2022-01-01 12:19:00', 6, 575, 'Credit Card'),
+('OD25', 'Suhaib', 3, '2022-01-01 14:21:00', 5, 234, 'Debit Card'),
+('OD26', 'Suhaib', 4, '2022-01-01 17:39:00', 4, 262, 'Credit Card'),
+('OD27', 'David', 7, '2022-01-01 14:31:00', 5, 887, 'Debit Card'),
+('OD28', 'Farhan', 8, '2022-01-01 20:31:00', 7, 586, 'Debit Card'),
+('OD29', 'Veer', 7, '2022-01-01 12:00:00', 7, 872, 'Cash on Delivery'),
+('OD30', 'Swamy', 2, '2022-01-01 12:00:00', 5, 528, 'Debit Card'),
+('OD31', 'Srini', 8, '2022-01-01 12:19:00', 4, 304, 'Credit Card'),
+('OD32', 'Veer', 14, '2022-01-01 13:39:00', 5, 370, 'Cash on Delivery'),
+('OD33', 'Farhan', 13, '2022-01-01 13:39:00', 5, 873, 'Cash on Delivery'),
+('OD34', 'Selva', 20, '2022-01-01 18:01:00', 6, 645, 'Credit Card'),
+('OD35', 'Charlie', 7, '2022-01-01 14:31:00', 6, 514, 'Debit Card'),
+('OD36', 'Selva', 17, '2022-01-01 11:15:00', 7, 635, 'Cash on Delivery'),
+('OD37', 'Revandh', 10, '2022-01-01 18:01:00', 4, 474, 'Cash on Delivery'),
+('OD38', 'Chinny', 13, '2022-01-01 23:15:00', 7, 999, 'Credit Card'),
+('OD39', 'Meera', 8, '2022-01-01 23:58:00', 5, 324, 'Debit Card'),
+('OD40', 'Gopal', 17, '2022-01-01 12:19:00', 1, 29, 'Credit Card'),
+('OD41', 'Vinny', 14, '2022-01-01 12:19:00', 5, 394, 'Debit Card'),
+('OD42', 'Suhaib', 12, '2022-01-01 13:30:00', 1, 125, 'Cash on Delivery'),
+('OD43', 'Charlie', 8, '2022-01-01 12:00:00', 3, 449, 'Debit Card'),
+('OD44', 'Meera', 14, '2022-01-01 14:10:00', 2, 3, 'Cash on Delivery'),
+('OD45', 'Veer', 18, '2022-01-01 19:21:00', 4, 478, 'Debit Card'),
+('OD46', 'Swamy', 9, '2022-01-01 18:01:00', 7, 744, 'Credit Card'),
+('OD47', 'Veronica', 19, '2022-01-01 23:58:00', 7, 865, 'Credit Card'),
+('OD48', 'Fastin', 17, '2022-01-01 15:22:00', 5, 439, 'Credit Card'),
+('OD49', 'Meera', 12, '2022-01-01 21:39:00', 4, 356, 'Debit Card'),
+('OD50', 'Swamy', 15, '2022-01-01 14:20:00', 6, 946, 'Cash on Delivery'),
+('OD51', 'Sabeena', 18, '2022-01-01 19:21:00', 1, 27, 'Credit Card'),
+('OD52', 'Swamy', 5, '2022-01-01 12:00:00', 3, 253, 'Cash on Delivery'),
+('OD53', 'Farhan', 4, '2022-01-01 14:22:00', 6, 941, 'Debit Card'),
+('OD54', 'Sweetie', 13, '2022-01-01 12:00:00', 7, 716, 'Credit Card'),
+('OD55', 'Gopal', 20, '2022-01-01 22:01:00', 1, 79, 'Cash on Delivery'),
+('OD56', 'Rifa', 12, '2022-01-01 23:15:00', 4, 254, 'Cash on Delivery'),
+('OD57', 'Fastin', 12, '2022-01-01 18:01:00', 2, 6, 'Credit Card'),
+('OD58', 'David', 1, '2022-01-01 11:19:00', 6, 953, 'Debit Card'),
+('OD59', 'Meera', 13, '2022-01-01 11:19:00', 5, 645, 'Cash on Delivery'),
+('OD60', 'Meera', 13, '2022-01-01 11:19:00', 7, 979, 'Credit Card'),
+('OD61', 'Rifa', 4, '2022-01-01 14:10:00', 2, 114, 'Credit Card'),
+('OD62', 'Swamy', 1, '2022-01-01 21:39:00', 4, 279, 'Credit Card'),
+('OD63', 'Selva', 20, '2022-01-01 11:10:00', 1, 91, 'Credit Card'),
+('OD64', 'Farhan', 15, '2022-01-01 14:22:00', 2, 20, 'Credit Card'),
+('OD65', 'Sweetie', 7, '2022-01-01 20:35:00', 2, 124, 'Credit Card'),
+('OD66', 'David', 3, '2022-01-01 18:01:00', 2, 120, 'Cash on Delivery'),
+('OD67', 'Charlie', 9, '2022-01-01 13:30:00', 5, 471, 'Cash on Delivery'),
+('OD68', 'Gopal', 6, '2022-01-01 11:10:00', 5, 345, 'Cash on Delivery'),
+('OD69', 'Chinny', 19, '2022-01-01 12:19:00', 3, 462, 'Debit Card'),
+('OD70', 'Revandh', 9, '2022-01-01 11:17:00', 7, 527, 'Debit Card'),
+('OD71', 'Swamy', 8, '2022-01-01 13:30:00', 3, 412, 'Cash on Delivery'),
+('OD72', 'Srini', 13, '2022-01-01 11:15:00', 4, 459, 'Credit Card'),
+('OD73', 'Farhan', 9, '2022-01-01 14:20:00', 6, 941, 'Cash on Delivery'),
+('OD74', 'Dev', 13, '2022-01-01 14:10:00', 3, 471, 'Debit Card'),
+('OD75', 'Ram', 7, '2022-01-01 20:35:00', 5, 942, 'Cash on Delivery'),
+('OD76', 'Srini', 6, '2022-01-01 12:19:00', 7, 934, 'Debit Card'),
+('OD77', 'Vinny', 12, '2022-01-01 14:10:00', 5, 534, 'Cash on Delivery'),
+('OD78', 'Vinny', 6, '2022-01-01 11:15:00', 5, 908, 'Debit Card'),
+('OD79', 'Swamy', 16, '2022-01-01 19:21:00', 6, 698, 'Credit Card'),
+('OD80', 'Sabeena', 16, '2022-01-01 19:21:00', 1, 50, 'Cash on Delivery'),
+('OD81', 'Veer', 3, '2022-01-01 17:39:00', 5, 436, 'Debit Card'),
+('OD82', 'Charlie', 18, '2022-01-01 11:15:00', 5, 882, 'Cash on Delivery'),
+('OD83', 'Shifa', 2, '2022-01-01 23:58:00', 2, 50, 'Debit Card'),
+('OD84', 'Srini', 14, '2022-01-01 14:20:00', 7, 704, 'Cash on Delivery'),
+('OD85', 'Ram', 13, '2022-01-01 23:58:00', 5, 603, 'Debit Card'),
+('OD86', 'Farhan', 10, '2022-01-01 20:31:00', 5, 602, 'Debit Card'),
+('OD87', 'Dev', 12, '2022-01-01 18:01:00', 4, 196, 'Debit Card'),
+('OD88', 'Veronica', 18, '2022-01-01 17:39:00', 1, 94, 'Debit Card'),
+('OD89', 'Gopal', 16, '2022-01-01 11:17:00', 7, 501, 'Credit Card'),
+('OD90', 'Shifa', 13, '2022-01-01 20:35:00', 5, 710, 'Credit Card'),
+('OD91', 'Gopal', 8, '2022-01-01 14:20:00', 4, 305, 'Credit Card'),
+('OD92', 'Swamy', 8, '2022-01-01 20:31:00', 6, 891, 'Debit Card'),
+('OD93', 'Charlie', 2, '2022-01-01 14:21:00', 5, 412, 'Credit Card'),
+('OD94', 'Suhaib', 20, '2022-01-01 14:31:00', 3, 455, 'Debit Card'),
+('OD95', 'Charlie', 5, '2022-01-01 14:22:00', 6, 953, 'Credit Card'),
+('OD96', 'David', 6, '2022-01-01 15:22:00', 4, 300, 'Cash on Delivery'),
+('OD97', 'Dev', 7, '2022-01-01 19:21:00', 2, 11, 'Cash on Delivery'),
+('OD98', 'Swamy', 3, '2022-01-01 14:22:00', 4, 219, 'Cash on Delivery'),
+('OD99', 'Vinny', 10, '2022-01-01 23:15:00', 6, 771, 'Debit Card'),
+('OD100', 'Srini', 6, '2022-01-01 11:10:00', 7, 936, 'Credit Card'),
+('OD101', 'Srini', 6, '2022-01-01 23:58:00', 5, 341, 'Credit Card'),
+('OD102', 'Farhan', 14, '2022-01-01 20:35:00', 2, 78, 'Debit Card'),
+('OD103', 'Srini', 19, '2022-01-01 21:31:00', 7, 723, 'Debit Card'),
+('OD104', 'Selva', 20, '2022-01-01 21:39:00', 5, 207, 'Debit Card'),
+('OD105', 'Vinny', 1, '2022-01-01 21:39:00', 4, 411, 'Cash on Delivery'),
+('OD106', 'Shifa', 18, '2022-01-01 14:20:00', 1, 133, 'Cash on Delivery'),
+('OD107', 'Suhaib', 6, '2022-01-01 11:10:00', 1, 124, 'Cash on Delivery'),
+('OD108', 'Chinny', 16, '2022-01-01 12:19:00', 5, 830, 'Debit Card'),
+('OD109', 'Meera', 18, '2022-01-01 21:31:00', 6, 886, 'Debit Card'),
+('OD110', 'Suhaib', 8, '2022-01-01 12:00:00', 5, 374, 'Cash on Delivery'),
+('OD111', 'Veer', 20, '2022-01-01 14:31:00', 5, 585, 'Debit Card'),
+('OD112', 'Revandh', 14, '2022-01-01 14:31:00', 5, 580, 'Debit Card'),
+('OD113', 'Meera', 4, '2022-01-01 13:39:00', 6, 590, 'Cash on Delivery'),
+('OD114', 'Rifa', 11, '2022-01-01 11:17:00', 7, 884, 'Debit Card'),
+('OD115', 'Selva', 15, '2022-01-01 15:22:00', 1, 41, 'Cash on Delivery'),
+('OD116', 'Srini', 4, '2022-01-01 12:00:00', 5, 485, 'Cash on Delivery'),
+('OD117', 'Suhaib', 5, '2022-01-01 14:20:00', 3, 269, 'Credit Card'),
+('OD118', 'Fastin', 13, '2022-01-01 23:15:00', 4, 391, 'Credit Card'),
+('OD119', 'Meera', 9, '2022-01-01 12:19:00', 4, 220, 'Debit Card'),
+('OD120', 'Revandh', 9, '2022-01-01 20:31:00', 5, 478, 'Debit Card'),
+('OD121', 'Srini', 3, '2022-01-01 13:39:00', 3, 359, 'Credit Card'),
+('OD122', 'Chinny', 1, '2022-01-01 20:31:00', 4, 254, 'Credit Card'),
+('OD123', 'Sweetie', 18, '2022-01-01 11:10:00', 6, 539, 'Debit Card'),
+('OD124', 'Suhaib', 1, '2022-01-01 12:19:00', 4, 376, 'Cash on Delivery'),
+('OD125', 'Ram', 16, '2022-01-01 14:22:00', 6, 786, 'Cash on Delivery'),
+('OD126', 'Vinny', 10, '2022-01-01 11:17:00', 3, 294, 'Debit Card'),
+('OD127', 'Vinny', 14, '2022-01-01 14:20:00', 5, 871, 'Credit Card'),
+('OD128', 'Fastin', 18, '2022-01-01 14:20:00', 5, 232, 'Credit Card'),
+('OD129', 'Suhaib', 9, '2022-01-01 11:15:00', 3, 432, 'Debit Card'),
+('OD130', 'Veer', 15, '2022-01-01 19:21:00', 4, 179, 'Credit Card'),
+('OD131', 'Selva', 17, '2022-01-01 20:35:00', 5, 359, 'Cash on Delivery'),
+('OD132', 'David', 12, '2022-01-01 15:22:00', 5, 882, 'Debit Card'),
+('OD133', 'Veer', 1, '2022-01-01 14:20:00', 5, 426, 'Debit Card'),
+('OD134', 'Vinny', 6, '2022-01-01 23:58:00', 7, 568, 'Cash on Delivery'),
+('OD135', 'Gopal', 3, '2022-01-01 15:22:00', 4, 352, 'Cash on Delivery'),
+('OD136', 'Chinny', 19, '2022-01-01 19:21:00', 5, 226, 'Debit Card'),
+('OD137', 'Charlie', 14, '2022-01-01 11:19:00', 5, 679, 'Debit Card'),
+('OD138', 'Charlie', 12, '2022-01-01 15:22:00', 3, 273, 'Cash on Delivery'),
+('OD139', 'Rifa', 12, '2022-01-01 23:15:00', 2, 78, 'Credit Card'),
+('OD140', 'Srini', 10, '2022-01-01 22:01:00', 3, 489, 'Debit Card'),
+('OD141', 'Rifa', 3, '2022-01-01 20:31:00', 7, 964, 'Debit Card'),
+('OD142', 'Meera', 12, '2022-01-01 13:31:00', 2, 56, 'Cash on Delivery'),
+('OD143', 'Revandh', 4, '2022-01-01 14:31:00', 1, 140, 'Debit Card'),
+('OD144', 'Sweetie', 20, '2022-01-01 13:30:00', 7, 703, 'Cash on Delivery'),
+('OD145', 'Charlie', 6, '2022-01-01 11:15:00', 4, 287, 'Debit Card'),
+('OD146', 'Farhan', 6, '2022-01-01 14:31:00', 3, 444, 'Cash on Delivery'),
+('OD147', 'Srini', 20, '2022-01-01 11:10:00', 2, 61, 'Debit Card'),
+('OD148', 'Swamy', 20, '2022-01-01 17:39:00', 3, 347, 'Cash on Delivery'),
+('OD149', 'Veronica', 2, '2022-01-01 14:22:00', 3, 264, 'Cash on Delivery'),
+('OD150', 'Suhaib', 6, '2022-01-01 11:17:00', 5, 712, 'Cash on Delivery'),
+('OD151', 'Chinny', 20, '2022-01-01 19:21:00', 1, 86, 'Cash on Delivery'),
+('OD152', 'Ram', 9, '2022-01-01 23:58:00', 1, 45, 'Debit Card'),
+('OD153', 'Rifa', 16, '2022-01-01 23:58:00', 7, 719, 'Credit Card'),
+('OD154', 'Vinny', 20, '2022-01-01 21:39:00', 7, 772, 'Credit Card'),
+('OD155', 'Farhan', 20, '2022-01-01 20:31:00', 6, 672, 'Cash on Delivery'),
+('OD156', 'Veer', 7, '2022-01-01 13:31:00', 7, 969, 'Cash on Delivery'),
+('OD157', 'Rifa', 1, '2022-01-01 14:22:00', 2, 125, 'Debit Card'),
+('OD158', 'Fastin', 9, '2022-01-01 13:39:00', 1, 134, 'Debit Card'),
+('OD159', 'Swamy', 3, '2022-01-01 11:19:00', 5, 616, 'Debit Card'),
+('OD160', 'Sabeena', 16, '2022-01-01 13:39:00', 5, 892, 'Debit Card'),
+('OD161', 'Fastin', 6, '2022-01-01 12:00:00', 7, 686, 'Credit Card'),
+('OD162', 'Ram', 1, '2022-01-01 15:22:00', 5, 422, 'Credit Card'),
+('OD163', 'Veer', 18, '2022-01-01 12:19:00', 7, 814, 'Debit Card'),
+('OD164', 'Rifa', 16, '2022-01-01 14:10:00', 6, 583, 'Credit Card'),
+('OD165', 'Veer', 2, '2022-01-01 18:01:00', 5, 721, 'Credit Card'),
+('OD166', 'Ram', 18, '2022-01-01 12:00:00', 5, 173, 'Cash on Delivery'),
+('OD167', 'Sabeena', 2, '2022-01-01 23:15:00', 4, 379, 'Credit Card'),
+('OD168', 'Sweetie', 9, '2022-01-01 21:31:00', 4, 318, 'Debit Card'),
+('OD169', 'Farhan', 17, '2022-01-01 19:21:00', 6, 724, 'Credit Card'),
+('OD170', 'Fastin', 16, '2022-01-01 11:19:00', 6, 789, 'Credit Card'),
+('OD171', 'Ram', 19, '2022-01-01 22:01:00', 4, 353, 'Cash on Delivery'),
+('OD172', 'Meera', 20, '2022-01-01 14:21:00', 1, 12, 'Debit Card'),
+('OD173', 'Suhaib', 19, '2022-01-01 15:22:00', 1, 127, 'Credit Card'),
+('OD174', 'Fastin', 19, '2022-01-01 23:15:00', 1, 102, 'Debit Card'),
+('OD175', 'Revandh', 4, '2022-01-01 13:31:00', 7, 965, 'Credit Card'),
+('OD176', 'Suhaib', 2, '2022-01-01 22:01:00', 1, 40, 'Credit Card'),
+('OD177', 'Vinny', 5, '2022-01-01 21:39:00', 4, 315, 'Debit Card'),
+('OD178', 'Farhan', 1, '2022-01-01 13:39:00', 4, 323, 'Cash on Delivery'),
+('OD179', 'Suhaib', 18, '2022-01-01 12:00:00', 4, 156, 'Debit Card'),
+('OD180', 'Revandh', 10, '2022-01-01 14:22:00', 2, 59, 'Credit Card'),
+('OD181', 'Chinny', 10, '2022-01-01 15:22:00', 1, 116, 'Cash on Delivery'),
+('OD182', 'Dev', 16, '2022-01-01 11:10:00', 5, 179, 'Credit Card'),
+('OD183', 'Revandh', 14, '2022-01-01 13:30:00', 4, 331, 'Credit Card'),
+('OD184', 'Revandh', 8, '2022-01-01 20:35:00', 5, 679, 'Cash on Delivery'),
+('OD185', 'Ram', 7, '2022-01-01 13:30:00', 4, 200, 'Debit Card'),
+('OD186', 'Gopal', 3, '2022-01-01 20:35:00', 7, 588, 'Debit Card'),
+('OD187', 'David', 12, '2022-01-01 13:39:00', 5, 188, 'Debit Card'),
+('OD188', 'Ram', 17, '2022-01-01 18:01:00', 1, 93, 'Credit Card'),
+('OD189', 'Rifa', 13, '2022-01-01 12:00:00', 5, 512, 'Credit Card'),
+('OD190', 'Revandh', 11, '2022-01-01 21:31:00', 6, 729, 'Cash on Delivery'),
+('OD191', 'Veronica', 10, '2022-01-01 15:22:00', 5, 691, 'Cash on Delivery'),
+('OD192', 'Dev', 12, '2022-01-01 14:31:00', 3, 317, 'Debit Card'),
+('OD193', 'Meera', 9, '2022-01-01 11:15:00', 4, 364, 'Cash on Delivery'),
+('OD194', 'Dev', 9, '2022-01-01 22:01:00', 7, 866, 'Cash on Delivery'),
+('OD195', 'Ram', 6, '2022-01-01 12:19:00', 4, 233, 'Debit Card'),
+('OD196', 'Rifa', 8, '2022-01-01 13:31:00', 6, 906, 'Debit Card'),
+('OD197', 'Swamy', 18, '2022-01-01 14:22:00', 7, 684, 'Credit Card'),
+('OD198', 'Veer', 8, '2022-01-01 23:15:00', 3, 470, 'Credit Card'),
+('OD199', 'Meera', 15, '2022-01-01 14:20:00', 7, 542, 'Cash on Delivery'),
+('OD200', 'Vinny', 2, '2022-01-01 17:39:00', 5, 630, 'Cash on Delivery'),
+('OD201', 'Suhaib', 13, '2022-01-01 11:10:00', 1, 19, 'Cash on Delivery'),
+('OD202', 'Veer', 1, '2022-01-01 14:10:00', 5, 937, 'Credit Card'),
+('OD203', 'Sweetie', 17, '2022-01-01 14:31:00', 7, 835, 'Debit Card'),
+('OD204', 'Veer', 1, '2022-01-01 23:58:00', 5, 977, 'Debit Card'),
+('OD205', 'Sabeena', 12, '2022-01-01 14:10:00', 7, 691, 'Debit Card'),
+('OD206', 'Meera', 18, '2022-01-01 22:01:00', 5, 656, 'Credit Card'),
+('OD207', 'Veronica', 5, '2022-01-01 12:00:00', 5, 933, 'Credit Card'),
+('OD208', 'Fastin', 16, '2022-01-01 17:39:00', 7, 607, 'Credit Card'),
+('OD209', 'Meera', 9, '2022-01-01 14:20:00', 6, 976, 'Debit Card'),
+('OD210', 'Shifa', 1, '2022-01-01 13:39:00', 5, 229, 'Credit Card'),
+('OD211', 'Farhan', 3, '2022-01-01 18:01:00', 6, 941, 'Cash on Delivery'),
+('OD212', 'Ram', 4, '2022-01-01 14:21:00', 5, 452, 'Debit Card'),
+('OD213', 'Ram', 14, '2022-01-01 13:30:00', 1, 36, 'Cash on Delivery'),
+('OD214', 'Meera', 12, '2022-01-01 12:00:00', 6, 736, 'Cash on Delivery'),
+('OD215', 'Chinny', 20, '2022-01-01 19:21:00', 1, 138, 'Debit Card'),
+('OD216', 'Selva', 14, '2022-01-01 14:31:00', 2, 21, 'Debit Card'),
+('OD217', 'Dev', 5, '2022-01-01 19:21:00', 6, 591, 'Debit Card'),
+('OD218', 'Gopal', 14, '2022-01-01 20:31:00', 4, 452, 'Debit Card'),
+('OD219', 'Meera', 12, '2022-01-01 17:39:00', 3, 345, 'Cash on Delivery'),
+('OD220', 'Selva', 6, '2022-01-01 11:19:00', 6, 885, 'Debit Card'),
+('OD221', 'Farhan', 16, '2022-01-01 23:15:00', 5, 844, 'Credit Card'),
+('OD222', 'Selva', 5, '2022-01-01 14:10:00', 4, 167, 'Debit Card'),
+('OD223', 'Srini', 17, '2022-01-01 15:22:00', 5, 669, 'Credit Card'),
+('OD224', 'Srini', 6, '2022-01-01 23:58:00', 7, 633, 'Credit Card'),
+('OD225', 'Dev', 7, '2022-01-01 14:21:00', 2, 22, 'Debit Card'),
+('OD226', 'Rifa', 18, '2022-01-01 13:30:00', 6, 502, 'Credit Card'),
+('OD227', 'David', 1, '2022-01-01 12:00:00', 7, 745, 'Credit Card'),
+('OD228', 'David', 15, '2022-01-01 14:10:00', 7, 578, 'Debit Card'),
+('OD229', 'Srini', 8, '2022-01-01 20:35:00', 6, 629, 'Cash on Delivery'),
+('OD230', 'Swamy', 18, '2022-01-01 22:01:00', 5, 223, 'Cash on Delivery'),
+('OD231', 'Revandh', 19, '2022-01-01 22:01:00', 2, 133, 'Cash on Delivery'),
+('OD232', 'Veronica', 19, '2022-01-01 20:31:00', 5, 920, 'Credit Card'),
+('OD233', 'Fastin', 7, '2022-01-01 19:21:00', 6, 945, 'Credit Card'),
+('OD234', 'Revandh', 7, '2022-01-01 14:22:00', 7, 721, 'Debit Card'),
+('OD235', 'Veronica', 4, '2022-01-01 12:19:00', 5, 680, 'Cash on Delivery'),
+('OD236', 'Chinny', 2, '2022-01-01 11:15:00', 7, 690, 'Cash on Delivery'),
+('OD237', 'Shifa', 16, '2022-01-01 17:39:00', 3, 412, 'Credit Card'),
+('OD238', 'Shifa', 3, '2022-01-01 14:20:00', 2, 86, 'Credit Card'),
+('OD239', 'Swamy', 10, '2022-01-01 13:39:00', 2, 93, 'Debit Card'),
+('OD240', 'Charlie', 6, '2022-01-01 20:31:00', 5, 568, 'Credit Card'),
+('OD241', 'Sabeena', 4, '2022-01-01 13:30:00', 5, 370, 'Debit Card'),
+('OD242', 'Srini', 14, '2022-01-01 20:35:00', 7, 756, 'Credit Card'),
+('OD243', 'Rifa', 3, '2022-01-01 20:35:00', 5, 624, 'Debit Card'),
+('OD244', 'Gopal', 13, '2022-01-01 20:31:00', 5, 366, 'Credit Card'),
+('OD245', 'Srini', 6, '2022-01-01 14:22:00', 1, 143, 'Credit Card'),
+('OD246', 'Rifa', 15, '2022-01-01 11:15:00', 5, 668, 'Cash on Delivery'),
+('OD247', 'Chinny', 14, '2022-01-01 19:21:00', 4, 377, 'Credit Card'),
+('OD248', 'Sabeena', 17, '2022-01-01 11:15:00', 5, 706, 'Credit Card'),
+('OD249', 'David', 7, '2022-01-01 23:58:00', 1, 37, 'Credit Card'),
+('OD250', 'Sabeena', 6, '2022-01-01 14:21:00', 4, 224, 'Cash on Delivery'),
+('OD251', 'Revandh', 18, '2022-01-01 18:01:00', 3, 478, 'Credit Card'),
+('OD252', 'Veer', 17, '2022-01-01 14:31:00', 5, 995, 'Credit Card'),
+('OD253', 'Selva', 9, '2022-01-01 13:30:00', 4, 260, 'Cash on Delivery'),
+('OD254', 'Vinny', 6, '2022-01-01 20:31:00', 7, 815, 'Credit Card'),
+('OD255', 'Shifa', 20, '2022-01-01 14:31:00', 6, 965, 'Credit Card'),
+('OD256', 'Veer', 8, '2022-01-01 19:21:00', 3, 256, 'Debit Card'),
+('OD257', 'Rifa', 4, '2022-01-01 12:19:00', 5, 777, 'Debit Card'),
+('OD258', 'Srini', 19, '2022-01-01 15:22:00', 7, 674, 'Credit Card'),
+('OD259', 'Suhaib', 7, '2022-01-01 12:19:00', 2, 134, 'Credit Card'),
+('OD260', 'Veer', 5, '2022-01-01 23:15:00', 5, 775, 'Cash on Delivery'),
+('OD261', 'Ram', 19, '2022-01-01 14:10:00', 7, 853, 'Cash on Delivery'),
+('OD262', 'Sabeena', 10, '2022-01-01 11:19:00', 7, 940, 'Debit Card'),
+('OD263', 'Revandh', 11, '2022-01-01 22:01:00', 2, 124, 'Debit Card'),
+('OD264', 'Farhan', 12, '2022-01-01 11:19:00', 4, 278, 'Credit Card'),
+('OD265', 'Shifa', 15, '2022-01-01 11:19:00', 5, 682, 'Cash on Delivery'),
+('OD266', 'Ram', 16, '2022-01-01 20:35:00', 6, 804, 'Cash on Delivery'),
+('OD267', 'Srini', 3, '2022-01-01 14:31:00', 2, 99, 'Cash on Delivery'),
+('OD268', 'Sabeena', 19, '2022-01-01 11:15:00', 6, 964, 'Cash on Delivery'),
+('OD269', 'Gopal', 17, '2022-01-01 14:31:00', 5, 938, 'Cash on Delivery'),
+('OD270', 'Farhan', 8, '2022-01-01 20:31:00', 7, 857, 'Cash on Delivery'),
+('OD271', 'Srini', 8, '2022-01-01 11:10:00', 7, 570, 'Cash on Delivery'),
+('OD272', 'Sweetie', 4, '2022-01-01 15:22:00', 5, 419, 'Cash on Delivery'),
+('OD273', 'Srini', 9, '2022-01-01 17:39:00', 4, 334, 'Cash on Delivery'),
+('OD274', 'Selva', 5, '2022-01-01 18:01:00', 6, 767, 'Credit Card'),
+('OD275', 'Swamy', 20, '2022-01-01 22:01:00', 2, 125, 'Cash on Delivery'),
+('OD276', 'Sweetie', 16, '2022-01-01 12:00:00', 2, 76, 'Cash on Delivery'),
+('OD277', 'Suhaib', 18, '2022-01-01 11:19:00', 6, 649, 'Debit Card'),
+('OD278', 'Sweetie', 3, '2022-01-01 13:31:00', 3, 352, 'Debit Card'),
+('OD279', 'Srini', 18, '2022-01-01 11:15:00', 5, 707, 'Credit Card'),
+('OD280', 'Gopal', 11, '2022-01-01 12:00:00', 5, 500, 'Cash on Delivery'),
+('OD281', 'Rifa', 5, '2022-01-01 23:58:00', 6, 802, 'Cash on Delivery'),
+('OD282', 'Meera', 10, '2022-01-01 14:31:00', 5, 164, 'Cash on Delivery'),
+('OD283', 'Veronica', 18, '2022-01-01 17:39:00', 4, 293, 'Cash on Delivery'),
+('OD284', 'Shifa', 16, '2022-01-01 11:17:00', 5, 377, 'Cash on Delivery'),
+('OD285', 'Dev', 13, '2022-01-01 11:15:00', 5, 538, 'Debit Card'),
+('OD286', 'Rifa', 11, '2022-01-01 14:10:00', 5, 761, 'Debit Card'),
+('OD287', 'Ram', 16, '2022-01-01 20:31:00', 6, 567, 'Cash on Delivery'),
+('OD288', 'Revandh', 14, '2022-01-01 12:19:00', 7, 944, 'Cash on Delivery'),
+('OD289', 'Revandh', 11, '2022-01-01 19:21:00', 7, 806, 'Cash on Delivery'),
+('OD290', 'Selva', 14, '2022-01-01 23:15:00', 6, 722, 'Debit Card'),
+('OD291', 'Shifa', 6, '2022-01-01 12:19:00', 5, 721, 'Debit Card'),
+('OD292', 'Srini', 15, '2022-01-01 20:35:00', 7, 636, 'Cash on Delivery'),
+('OD293', 'Farhan', 7, '2022-01-01 13:30:00', 5, 628, 'Cash on Delivery'),
+('OD294', 'David', 13, '2022-01-01 19:21:00', 2, 100, 'Cash on Delivery'),
+('OD295', 'Meera', 18, '2022-01-01 19:21:00', 5, 372, 'Debit Card'),
+('OD296', 'Rifa', 13, '2022-01-01 23:58:00', 7, 660, 'Debit Card'),
+('OD297', 'Farhan', 8, '2022-01-01 13:39:00', 1, 65, 'Credit Card'),
+('OD298', 'Rifa', 1, '2022-01-01 14:20:00', 5, 337, 'Cash on Delivery'),
+('OD299', 'Veer', 12, '2022-01-01 19:21:00', 6, 606, 'Cash on Delivery'),
+('OD300', 'Ram', 3, '2022-01-01 20:35:00', 6, 713, 'Cash on Delivery'),
+('OD301', 'Veronica', 2, '2022-01-01 11:17:00', 3, 511, 'Debit Card'),
+('OD302', 'Ram', 17, '2022-01-01 13:30:00', 5, 446, 'Credit Card'),
+('OD303', 'Fastin', 14, '2022-01-01 13:39:00', 3, 743, 'Credit Card'),
+('OD304', 'Gopal', 3, '2022-01-01 22:01:00', 7, 853, 'Cash on Delivery'),
+('OD305', 'Revandh', 2, '2022-01-01 21:31:00', 3, 618, 'Cash on Delivery'),
+('OD306', 'Srini', 7, '2022-01-01 23:58:00', 3, 639, 'Credit Card'),
+('OD307', 'Rifa', 2, '2022-01-01 21:31:00', 6, 973, 'Cash on Delivery'),
+('OD308', 'Swamy', 13, '2022-01-01 14:31:00', 5, 551, 'Cash on Delivery'),
+('OD309', 'Revandh', 18, '2022-01-01 11:19:00', 3, 488, 'Debit Card'),
+('OD310', 'Gopal', 2, '2022-01-01 19:21:00', 7, 878, 'Debit Card'),
+('OD311', 'Vinny', 13, '2022-01-01 13:30:00', 5, 1082, 'Debit Card'),
+('OD312', 'Ram', 1, '2022-01-01 19:21:00', 7, 872, 'Cash on Delivery'),
+('OD313', 'Farhan', 17, '2022-01-01 14:20:00', 4, 727, 'Debit Card'),
+('OD314', 'Sabeena', 18, '2022-01-01 12:19:00', 5, 1048, 'Cash on Delivery'),
+('OD315', 'Chinny', 12, '2022-01-01 21:39:00', 3, 634, 'Debit Card'),
+('OD316', 'David', 17, '2022-01-01 13:39:00', 3, 651, 'Credit Card'),
+('OD317', 'Swamy', 16, '2022-01-01 15:22:00', 6, 817, 'Cash on Delivery'),
+('OD318', 'Meera', 16, '2022-01-01 23:58:00', 4, 782, 'Credit Card'),
+('OD319', 'Veer', 1, '2022-01-01 14:22:00', 5, 819, 'Credit Card'),
+('OD320', 'Suhaib', 13, '2022-01-01 11:15:00', 5, 991, 'Debit Card'),
+('OD321', 'Charlie', 4, '2022-01-01 17:39:00', 3, 418, 'Debit Card'),
+('OD322', 'David', 1, '2022-01-01 11:10:00', 4, 400, 'Debit Card'),
+('OD323', 'Vinny', 13, '2022-01-01 20:31:00', 6, 926, 'Debit Card'),
+('OD324', 'Revandh', 20, '2022-01-01 17:39:00', 6, 849, 'Debit Card'),
+('OD325', 'David', 8, '2022-01-01 13:31:00', 7, 993, 'Cash on Delivery'),
+('OD326', 'Gopal', 1, '2022-01-01 17:39:00', 4, 508, 'Cash on Delivery'),
+('OD327', 'Sabeena', 4, '2022-01-01 14:21:00', 7, 828, 'Debit Card'),
+('OD328', 'Veer', 18, '2022-01-01 13:39:00', 5, 750, 'Debit Card'),
+('OD329', 'Vinny', 8, '2022-01-01 14:21:00', 3, 543, 'Debit Card'),
+('OD330', 'David', 13, '2022-01-01 21:31:00', 6, 1091, 'Cash on Delivery'),
+('OD331', 'Suhaib', 11, '2022-01-01 21:39:00', 5, 1091, 'Debit Card'),
+('OD332', 'David', 3, '2022-01-01 19:21:00', 4, 736, 'Credit Card'),
+('OD333', 'Chinny', 19, '2022-01-01 22:01:00', 5, 1081, 'Debit Card'),
+('OD334', 'Dev', 5, '2022-01-01 21:31:00', 5, 729, 'Debit Card'),
+('OD335', 'Dev', 20, '2022-01-01 13:30:00', 3, 709, 'Credit Card'),
+('OD336', 'Charlie', 5, '2022-01-01 14:31:00', 3, 692, 'Credit Card'),
+('OD337', 'Gopal', 10, '2022-01-01 18:01:00', 3, 789, 'Cash on Delivery'),
+('OD338', 'Gopal', 2, '2022-01-01 23:15:00', 4, 539, 'Cash on Delivery'),
+('OD339', 'Srini', 17, '2022-01-01 21:39:00', 3, 590, 'Debit Card'),
+('OD340', 'Sabeena', 6, '2022-01-01 11:19:00', 6, 1068, 'Cash on Delivery'),
+('OD341', 'Rifa', 12, '2022-01-01 12:19:00', 6, 989, 'Credit Card'),
+('OD342', 'Sweetie', 13, '2022-01-01 11:17:00', 5, 734, 'Cash on Delivery'),
+('OD343', 'Srini', 10, '2022-01-01 14:20:00', 3, 520, 'Credit Card'),
+('OD344', 'Shifa', 17, '2022-01-01 12:19:00', 5, 1010, 'Debit Card'),
+('OD345', 'Suhaib', 9, '2022-01-01 20:31:00', 3, 478, 'Credit Card'),
+('OD346', 'Rifa', 2, '2022-01-01 13:30:00', 4, 428, 'Cash on Delivery'),
+('OD347', 'Charlie', 3, '2022-01-01 11:19:00', 4, 703, 'Debit Card'),
+('OD348', 'Ram', 6, '2022-01-01 11:10:00', 5, 446, 'Cash on Delivery'),
+('OD349', 'David', 16, '2022-01-01 21:39:00', 3, 546, 'Credit Card'),
+('OD350', 'Meera', 18, '2022-01-01 11:19:00', 6, 833, 'Cash on Delivery'),
+('OD351', 'Ram', 5, '2022-01-01 11:17:00', 4, 778, 'Debit Card'),
+('OD352', 'Dev', 1, '2022-01-01 14:20:00', 3, 596, 'Debit Card'),
+('OD353', 'Veronica', 9, '2022-01-01 22:01:00', 3, 639, 'Credit Card'),
+('OD354', 'Shifa', 14, '2022-01-01 21:39:00', 4, 501, 'Cash on Delivery'),
+('OD355', 'Charlie', 6, '2022-01-01 12:19:00', 5, 799, 'Credit Card'),
+('OD356', 'Veer', 2, '2022-01-01 21:31:00', 6, 856, 'Debit Card'),
+('OD357', 'Shifa', 19, '2022-01-01 23:58:00', 7, 865, 'Credit Card'),
+('OD358', 'Suhaib', 8, '2022-01-01 20:35:00', 4, 711, 'Credit Card'),
+('OD359', 'Ram', 5, '2022-01-01 17:39:00', 6, 947, 'Debit Card'),
+('OD360', 'Sabeena', 10, '2022-01-01 20:31:00', 4, 777, 'Debit Card'),
+('OD361', 'Rifa', 6, '2022-01-01 19:21:00', 5, 841, 'Debit Card'),
+('OD362', 'Sabeena', 19, '2022-01-01 13:39:00', 4, 789, 'Credit Card'),
+('OD363', 'Swamy', 3, '2022-01-01 11:17:00', 4, 600, 'Credit Card'),
+('OD364', 'Veer', 11, '2022-01-01 13:39:00', 6, 1160, 'Cash on Delivery'),
+('OD365', 'David', 19, '2022-01-01 14:22:00', 5, 767, 'Credit Card'),
+('OD366', 'Selva', 9, '2022-01-01 14:21:00', 4, 731, 'Cash on Delivery'),
+('OD367', 'Vinny', 6, '2022-01-01 11:10:00', 4, 787, 'Debit Card'),
+('OD368', 'Ram', 19, '2022-01-01 13:39:00', 5, 794, 'Cash on Delivery'),
+('OD369', 'Shifa', 5, '2022-01-01 14:22:00', 5, 1193, 'Debit Card'),
+('OD370', 'Vinny', 11, '2022-01-01 11:15:00', 7, 801, 'Credit Card'),
+('OD371', 'Sabeena', 17, '2022-01-01 14:22:00', 5, 835, 'Credit Card'),
+('OD372', 'Charlie', 1, '2022-01-01 23:58:00', 7, 913, 'Cash on Delivery'),
+('OD373', 'Dev', 10, '2022-01-01 15:22:00', 6, 1050, 'Debit Card'),
+('OD374', 'Dev', 15, '2022-01-01 19:21:00', 5, 527, 'Cash on Delivery'),
+('OD375', 'Srini', 14, '2022-01-01 15:22:00', 6, 1011, 'Cash on Delivery'),
+('OD376', 'Farhan', 3, '2022-01-01 15:22:00', 5, 657, 'Debit Card'),
+('OD377', 'Gopal', 5, '2022-01-01 13:39:00', 5, 785, 'Debit Card'),
+('OD378', 'Sweetie', 18, '2022-01-01 20:31:00', 5, 439, 'Cash on Delivery'),
+('OD379', 'Selva', 14, '2022-01-01 14:20:00', 3, 732, 'Cash on Delivery'),
+('OD380', 'Rifa', 18, '2022-01-01 15:22:00', 5, 546, 'Debit Card'),
+('OD381', 'Revandh', 3, '2022-01-01 11:17:00', 3, 522, 'Cash on Delivery'),
+('OD382', 'Shifa', 2, '2022-01-01 12:19:00', 7, 1155, 'Cash on Delivery'),
+('OD383', 'Fastin', 5, '2022-01-01 11:19:00', 4, 456, 'Debit Card'),
+('OD384', 'Chinny', 15, '2022-01-01 20:31:00', 6, 1062, 'Debit Card'),
+('OD385', 'Veronica', 1, '2022-01-01 13:31:00', 5, 1015, 'Debit Card'),
+('OD386', 'David', 7, '2022-01-01 14:21:00', 6, 1067, 'Debit Card'),
+('OD387', 'Veer', 11, '2022-01-01 17:39:00', 5, 571, 'Debit Card'),
+('OD388', 'Shifa', 13, '2022-01-01 22:01:00', 5, 439, 'Debit Card'),
+('OD389', 'Srini', 15, '2022-01-01 20:35:00', 4, 460, 'Cash on Delivery'),
+('OD390', 'Farhan', 6, '2022-01-01 14:21:00', 6, 1060, 'Debit Card'),
+('OD391', 'Srini', 19, '2022-01-01 19:21:00', 5, 534, 'Credit Card'),
+('OD392', 'Srini', 20, '2022-01-01 17:39:00', 6, 885, 'Cash on Delivery'),
+('OD393', 'David', 15, '2022-01-01 18:01:00', 4, 450, 'Debit Card'),
+('OD394', 'Revandh', 12, '2022-01-01 11:19:00', 5, 1047, 'Credit Card'),
+('OD395', 'Ram', 19, '2022-01-01 15:22:00', 7, 1035, 'Credit Card'),
+('OD396', 'David', 17, '2022-01-01 23:15:00', 5, 1178, 'Credit Card'),
+('OD397', 'Selva', 16, '2022-01-01 23:15:00', 6, 895, 'Cash on Delivery'),
+('OD398', 'Sweetie', 16, '2022-01-01 19:21:00', 5, 614, 'Cash on Delivery'),
+('OD399', 'Dev', 10, '2022-01-01 23:15:00', 4, 434, 'Credit Card'),
+('OD400', 'Shifa', 20, '2022-01-01 11:17:00', 3, 585, 'Debit Card'),
+('OD401', 'Dev', 8, '2022-01-01 21:39:00', 4, 694, 'Cash on Delivery'),
+('OD402', 'Gopal', 17, '2022-01-01 14:22:00', 6, 971, 'Credit Card'),
+('OD403', 'Vinny', 19, '2022-01-01 18:01:00', 7, 975, 'Debit Card'),
+('OD404', 'Dev', 6, '2022-01-01 20:31:00', 3, 783, 'Debit Card'),
+('OD405', 'Revandh', 20, '2022-01-01 21:31:00', 6, 1069, 'Credit Card'),
+('OD406', 'Charlie', 5, '2022-01-01 21:31:00', 5, 946, 'Debit Card'),
+('OD407', 'Revandh', 17, '2022-01-01 12:00:00', 4, 573, 'Credit Card'),
+('OD408', 'Ram', 20, '2022-01-01 14:21:00', 4, 408, 'Cash on Delivery'),
+('OD409', 'Sabeena', 12, '2022-01-01 13:30:00', 5, 656, 'Debit Card'),
+('OD410', 'Revandh', 16, '2022-01-01 23:58:00', 5, 470, 'Credit Card'),
+('OD411', 'Revandh', 4, '2022-01-01 11:10:00', 5, 620, 'Debit Card'),
+('OD412', 'Suhaib', 19, '2022-01-01 21:39:00', 5, 1115, 'Debit Card'),
+('OD413', 'Revandh', 19, '2022-01-01 11:19:00', 3, 524, 'Credit Card'),
+('OD414', 'Rifa', 12, '2022-01-01 13:31:00', 3, 532, 'Cash on Delivery'),
+('OD415', 'Meera', 4, '2022-01-01 11:15:00', 4, 420, 'Credit Card'),
+('OD416', 'Sabeena', 17, '2022-01-01 11:10:00', 3, 758, 'Debit Card'),
+('OD417', 'Dev', 18, '2022-01-01 20:35:00', 4, 514, 'Debit Card'),
+('OD418', 'Ram', 1, '2022-01-01 20:31:00', 3, 711, 'Credit Card'),
+('OD419', 'Suhaib', 11, '2022-01-01 23:58:00', 4, 733, 'Cash on Delivery'),
+('OD420', 'Srini', 20, '2022-01-01 18:01:00', 5, 963, 'Debit Card'),
+('OD421', 'Swamy', 11, '2022-01-01 21:31:00', 4, 751, 'Debit Card'),
+('OD422', 'Chinny', 6, '2022-01-01 21:39:00', 3, 580, 'Credit Card'),
+('OD423', 'Sweetie', 20, '2022-01-01 11:15:00', 3, 749, 'Credit Card'),
+('OD424', 'Swamy', 5, '2022-01-01 13:39:00', 4, 404, 'Cash on Delivery'),
+('OD425', 'Sweetie', 4, '2022-01-01 23:15:00', 5, 546, 'Cash on Delivery'),
+('OD426', 'Farhan', 9, '2022-01-01 17:39:00', 3, 466, 'Credit Card'),
+('OD427', 'Selva', 17, '2022-01-01 14:20:00', 6, 837, 'Credit Card'),
+('OD428', 'Suhaib', 1, '2022-01-01 14:31:00', 6, 916, 'Credit Card'),
+('OD429', 'Shifa', 1, '2022-01-01 20:31:00', 7, 815, 'Cash on Delivery'),
+('OD430', 'Selva', 12, '2022-01-01 20:31:00', 3, 570, 'Debit Card'),
+('OD431', 'Sweetie', 20, '2022-01-01 20:35:00', 4, 648, 'Cash on Delivery'),
+('OD432', 'Sweetie', 20, '2022-01-01 14:21:00', 3, 792, 'Debit Card'),
+('OD433', 'Charlie', 7, '2022-01-01 14:10:00', 4, 410, 'Debit Card'),
+('OD434', 'Meera', 15, '2022-01-01 14:21:00', 7, 837, 'Debit Card'),
+('OD435', 'Veronica', 20, '2022-01-01 21:31:00', 5, 542, 'Credit Card'),
+('OD436', 'Dev', 17, '2022-01-01 20:35:00', 5, 565, 'Cash on Delivery'),
+('OD437', 'David', 15, '2022-01-01 11:19:00', 5, 1169, 'Debit Card'),
+('OD438', 'Sweetie', 4, '2022-01-01 14:31:00', 5, 1017, 'Cash on Delivery'),
+('OD439', 'Revandh', 12, '2022-01-01 14:21:00', 3, 770, 'Credit Card'),
+('OD440', 'Srini', 1, '2022-01-01 14:21:00', 5, 888, 'Credit Card'),
+('OD441', 'Farhan', 20, '2022-01-01 20:35:00', 5, 1102, 'Debit Card'),
+('OD442', 'Gopal', 8, '2022-01-01 14:21:00', 5, 1044, 'Debit Card'),
+('OD443', 'Ram', 7, '2022-01-01 11:19:00', 5, 1165, 'Credit Card'),
+('OD444', 'Farhan', 1, '2022-01-01 23:58:00', 5, 482, 'Cash on Delivery'),
+('OD445', 'Charlie', 18, '2022-01-01 23:15:00', 7, 1111, 'Debit Card'),
+('OD446', 'Ram', 14, '2022-01-01 19:21:00', 3, 634, 'Credit Card'),
+('OD447', 'Chinny', 9, '2022-01-01 14:31:00', 5, 583, 'Cash on Delivery'),
+('OD448', 'Charlie', 9, '2022-01-01 12:19:00', 4, 425, 'Cash on Delivery'),
+('OD449', 'Charlie', 16, '2022-01-01 14:22:00', 5, 1198, 'Credit Card'),
+('OD450', 'Dev', 13, '2022-01-01 23:58:00', 7, 882, 'Cash on Delivery'),
+('OD451', 'Sweetie', 7, '2022-01-01 11:17:00', 6, 857, 'Credit Card'),
+('OD452', 'Fastin', 5, '2022-01-01 20:35:00', 5, 797, 'Credit Card'),
+('OD453', 'Ram', 11, '2022-01-01 13:30:00', 3, 796, 'Credit Card'),
+('OD454', 'Gopal', 15, '2022-01-01 11:10:00', 7, 975, 'Credit Card'),
+('OD455', 'Veer', 4, '2022-01-01 14:20:00', 4, 663, 'Debit Card'),
+('OD456', 'Gopal', 11, '2022-01-01 23:58:00', 3, 699, 'Debit Card'),
+('OD457', 'Vinny', 6, '2022-01-01 19:21:00', 3, 520, 'Debit Card'),
+('OD458', 'Sabeena', 10, '2022-01-01 23:15:00', 5, 455, 'Debit Card'),
+('OD459', 'Sabeena', 18, '2022-01-01 20:31:00', 5, 548, 'Cash on Delivery'),
+('OD460', 'Charlie', 2, '2022-01-01 13:30:00', 7, 1128, 'Credit Card'),
+('OD461', 'Suhaib', 5, '2022-01-01 13:39:00', 5, 552, 'Cash on Delivery'),
+('OD462', 'Rifa', 12, '2022-01-01 15:22:00', 5, 883, 'Credit Card'),
+('OD463', 'Meera', 13, '2022-01-01 14:10:00', 4, 555, 'Debit Card'),
+('OD464', 'Revandh', 1, '2022-01-01 20:35:00', 6, 859, 'Debit Card'),
+('OD465', 'Meera', 11, '2022-01-01 17:39:00', 4, 461, 'Credit Card'),
+('OD466', 'David', 1, '2022-01-01 14:10:00', 7, 894, 'Cash on Delivery'),
+('OD467', 'Veer', 8, '2022-01-01 17:39:00', 6, 1196, 'Debit Card'),
+('OD468', 'Veer', 4, '2022-01-01 14:31:00', 4, 411, 'Credit Card'),
+('OD469', 'Chinny', 14, '2022-01-01 13:39:00', 5, 542, 'Debit Card'),
+('OD470', 'Vinny', 20, '2022-01-01 19:21:00', 4, 476, 'Credit Card'),
+('OD471', 'Fastin', 19, '2022-01-01 14:10:00', 5, 846, 'Cash on Delivery'),
+('OD472', 'Rifa', 16, '2022-01-01 13:31:00', 5, 1152, 'Cash on Delivery'),
+('OD473', 'Veer', 13, '2022-01-01 20:31:00', 4, 697, 'Credit Card'),
+('OD474', 'Veronica', 3, '2022-01-01 23:15:00', 5, 1119, 'Debit Card'),
+('OD475', 'Revandh', 16, '2022-01-01 11:10:00', 6, 1171, 'Debit Card'),
+('OD476', 'Meera', 5, '2022-01-01 22:01:00', 5, 1031, 'Credit Card'),
+('OD477', 'Suhaib', 17, '2022-01-01 13:31:00', 5, 518, 'Credit Card'),
+('OD478', 'Srini', 4, '2022-01-01 14:21:00', 5, 885, 'Cash on Delivery'),
+('OD479', 'Suhaib', 11, '2022-01-01 14:31:00', 5, 763, 'Cash on Delivery'),
+('OD480', 'Selva', 11, '2022-01-01 21:39:00', 7, 827, 'Credit Card'),
+('OD481', 'Rifa', 2, '2022-01-01 13:30:00', 3, 549, 'Credit Card'),
+('OD482', 'Charlie', 12, '2022-01-01 14:22:00', 3, 505, 'Credit Card'),
+('OD483', 'Swamy', 4, '2022-01-01 15:22:00', 5, 653, 'Credit Card'),
+('OD484', 'Sabeena', 4, '2022-01-01 13:39:00', 6, 827, 'Credit Card'),
+('OD485', 'Farhan', 18, '2022-01-01 15:22:00', 7, 1165, 'Debit Card'),
+('OD486', 'Vinny', 7, '2022-01-01 18:01:00', 5, 1021, 'Debit Card'),
+('OD487', 'Shifa', 18, '2022-01-01 14:20:00', 6, 896, 'Credit Card'),
+('OD488', 'Sabeena', 14, '2022-01-01 11:10:00', 4, 709, 'Cash on Delivery'),
+('OD489', 'Ram', 18, '2022-01-01 18:01:00', 5, 547, 'Debit Card'),
+('OD490', 'Chinny', 4, '2022-01-01 11:15:00', 5, 596, 'Credit Card'),
+('OD491', 'Meera', 14, '2022-01-01 23:15:00', 4, 405, 'Debit Card'),
+('OD492', 'Swamy', 13, '2022-01-01 14:20:00', 5, 1046, 'Cash on Delivery'),
+('OD493', 'Swamy', 9, '2022-01-01 19:21:00', 5, 875, 'Credit Card'),
+('OD494', 'Fastin', 8, '2022-01-01 13:30:00', 4, 557, 'Cash on Delivery'),
+('OD495', 'Dev', 13, '2022-01-01 11:17:00', 7, 875, 'Credit Card'),
+('OD496', 'Chinny', 20, '2022-01-01 15:22:00', 6, 1184, 'Cash on Delivery'),
+('OD497', 'Veronica', 17, '2022-01-01 13:31:00', 5, 541, 'Credit Card'),
+('OD498', 'Chinny', 10, '2022-01-01 21:31:00', 6, 1049, 'Cash on Delivery'),
+('OD499', 'Charlie', 2, '2022-01-01 14:10:00', 5, 758, 'Cash on Delivery'),
+('OD500', 'Sabeena', 7, '2022-01-01 18:01:00', 3, 659, 'Cash on Delivery');
+
+
+
+INSERT INTO Payments (OrderID, PaymentMode, Amount)
+VALUES
+('OD1', 'Debit Card', 633),
+('OD2', 'Credit Card', 258),
+('OD3', 'Cash on Delivery', 594),
+('OD4', 'Cash on Delivery', 868),
+('OD5', 'Debit Card', 170),
+('OD6', 'Cash on Delivery', 575),
+('OD7', 'Credit Card', 102),
+('OD8', 'Credit Card', 321),
+('OD9', 'Debit Card', 248),
+('OD10', 'Cash on Delivery', 295),
+('OD11', 'Cash on Delivery', 607),
+('OD12', 'Debit Card', 916),
+('OD13', 'Debit Card', 813),
+('OD14', 'Debit Card', 525),
+('OD15', 'Credit Card', 872),
+('OD16', 'Cash on Delivery', 546),
+('OD17', 'Cash on Delivery', 757),
+('OD18', 'Credit Card', 80),
+('OD19', 'Cash on Delivery', 692),
+('OD20', 'Cash on Delivery', 464),
+('OD21', 'Cash on Delivery', 686),
+('OD22', 'Cash on Delivery', 630),
+('OD23', 'Debit Card', 28),
+('OD24', 'Credit Card', 575),
+('OD25', 'Debit Card', 234),
+('OD26', 'Credit Card', 262),
+('OD27', 'Debit Card', 887),
+('OD28', 'Debit Card', 586),
+('OD29', 'Cash on Delivery', 872),
+('OD30', 'Debit Card', 528),
+('OD31', 'Credit Card', 304),
+('OD32', 'Cash on Delivery', 370),
+('OD33', 'Cash on Delivery', 873),
+('OD34', 'Credit Card', 645),
+('OD35', 'Debit Card', 514),
+('OD36', 'Cash on Delivery', 635),
+('OD37', 'Cash on Delivery', 474),
+('OD38', 'Credit Card', 999),
+('OD39', 'Debit Card', 324),
+('OD40', 'Credit Card', 29),
+('OD41', 'Debit Card', 394),
+('OD42', 'Cash on Delivery', 125),
+('OD43', 'Debit Card', 449),
+('OD44', 'Cash on Delivery', 3),
+('OD45', 'Debit Card', 478),
+('OD46', 'Credit Card', 744),
+('OD47', 'Credit Card', 865),
+('OD48', 'Credit Card', 439),
+('OD49', 'Debit Card', 356),
+('OD50', 'Cash on Delivery', 946),
+('OD51', 'Credit Card', 27),
+('OD52', 'Cash on Delivery', 253),
+('OD53', 'Debit Card', 941),
+('OD54', 'Credit Card', 716),
+('OD55', 'Cash on Delivery', 79),
+('OD56', 'Cash on Delivery', 254),
+('OD57', 'Credit Card', 6),
+('OD58', 'Debit Card', 953),
+('OD59', 'Cash on Delivery', 645),
+('OD60', 'Credit Card', 979),
+('OD61', 'Credit Card', 114),
+('OD62', 'Credit Card', 279),
+('OD63', 'Credit Card', 91),
+('OD64', 'Credit Card', 20),
+('OD65', 'Credit Card', 124),
+('OD66', 'Cash on Delivery', 120),
+('OD67', 'Cash on Delivery', 471),
+('OD68', 'Cash on Delivery', 345),
+('OD69', 'Debit Card', 462),
+('OD70', 'Debit Card', 527),
+('OD71', 'Cash on Delivery', 412),
+('OD72', 'Credit Card', 459),
+('OD73', 'Cash on Delivery', 941),
+('OD74', 'Debit Card', 471),
+('OD75', 'Cash on Delivery', 942),
+('OD76', 'Debit Card', 934),
+('OD77', 'Cash on Delivery', 534),
+('OD78', 'Debit Card', 908),
+('OD79', 'Credit Card', 698),
+('OD80', 'Cash on Delivery', 50),
+('OD81', 'Debit Card', 436),
+('OD82', 'Cash on Delivery', 882),
+('OD83', 'Debit Card', 50),
+('OD84', 'Cash on Delivery', 704),
+('OD85', 'Debit Card', 603),
+('OD86', 'Debit Card', 602),
+('OD87', 'Debit Card', 196),
+('OD88', 'Debit Card', 94),
+('OD89', 'Credit Card', 501),
+('OD90', 'Credit Card', 710),
+('OD91', 'Credit Card', 305),
+('OD92', 'Debit Card', 891),
+('OD93', 'Credit Card', 412),
+('OD94', 'Debit Card', 455),
+('OD95', 'Credit Card', 953),
+('OD96', 'Cash on Delivery', 300),
+('OD97', 'Cash on Delivery', 11),
+('OD98', 'Cash on Delivery', 219),
+('OD99', 'Debit Card', 771),
+('OD100', 'Credit Card', 936);
+
+
+INSERT INTO Ratings (OrderID, FoodRating, DeliveryRating)
+VALUES
+('OD1', 5, 4),
+('OD2', 4, 3),
+('OD3', 5, 5),
+('OD4', 3, 4),
+('OD5', 2, 2),
+('OD6', 4, 4),
+('OD7', 3, 3),
+('OD8', 5, 5),
+('OD9', 4, 4),
+('OD10', 3, 3),
+('OD11', 5, 5),
+('OD12', 5, 4),
+('OD13', 4, 4),
+('OD14', 3, 3),
+('OD15', 5, 5),
+('OD16', 4, 3),
+('OD17', 5, 5),
+('OD18', 2, 2),
+('OD19', 3, 3),
+('OD20', 4, 4);
+
+
+INSERT INTO Customers (CustomerName) 
+VALUES 
+('Srini'), 
+('Revandh'), 
+('David'), 
+('Selva'), 
+('Vinny'), 
+('Dev'), 
+('Meera'), 
+('Sabeena'), 
+('Rifa'), 
+('Farhan'), 
+('Suhaib'), 
+('Swamy'), 
+('Sweetie'), 
+('Shifa'), 
+('Veer'), 
+('Anand'), 
+('Zam Zam'), 
+('Ellora'), 
+('Sam Hotel'), 
+('Chew Restaurant'), 
+('Charlie'), 
+('Chinny'), 
+('Veronica'), 
+('Fastin'), 
+('Gopal'), 
+('Ram'), 
+('Ellora'), 
+('The Taste');
+
+
+הסברים על הקשרים בין הטבלאות
+
+המערכת כוללת חמישה טבלאות מרכזיות 
+(Restaurants, Customers, Orders, Payments, Ratings), 
+וכולן מחוברות זו לזו דרך מפתחות ראשיים ומפתחות זרים ליצירת מבנה רלציוני הגיוני ושלם
+ להלן פירוט הקשרים
+
+קשר בין מסעדות להזמנות
+
+סוג הקשר: אחד לרבים.
+כיצד זה עובד
+כל מסעדה יכולה לקבל מספר רב של הזמנות, אך כל הזמנה משויכת למסעדה אחת בלבד
+
+מפתח זר
+עמודת מזהה מסעדה בטבלת הזמנות מקושרת לעמודת מזהה מסעדה בטבלת מסעדות
+.
+יתרון הקשר
+
+מאפשר לקשר כל הזמנה למסעדה ספציפית, כך שניתן לנתח את כמות ההזמנות והכנסות לכל מסעדה
+
+
+קשר בין לקוחות להזמנות
+
+סוג הקשר: אחד לרבים
+כיצד זה עובד
+כל לקוח יכול לבצע מספר הזמנות, אך כל הזמנה שייכת ללקוח אחד בלבד
+
+מפתח זר
+
+עמודת מזהה לקוח בטבלת הזמנות מקושרת לעמודת מזהה לקוח בטבלת לקוחות.
+יתרון הקשר:
+מאפשר מעקב אחר הרגלי ההזמנה של לקוחות, כמו תדירות ההזמנות או סכומי הרכישות הכוללים
+
+
+קשר בין הזמנות לתשלומים
+
+סוג הקשר: אחד לאחד
+כיצד זה עובד
+כל הזמנה מחייבת תשלום אחד בלבד, וכל תשלום שייך להזמנה אחת בלבד
+
+מפתח זר
+
+עמודת מזהה הזמנה בטבלת תשלומים מקושרת לעמודת מזהה הזמנה בטבלת הזמנות
+יתרון הקשר:
+מבטיח שלכל הזמנה קיים תיעוד תשלום, וניתן לנתח את דרכי התשלום המועדפות (כרטיס אשראי, מזומן וכדומה
+).
+
+
+קשר בין הזמנות לדירוגים
+
+
+סוג הקשר: אחד לאחד.
+כיצד זה עובד:
+כל הזמנה יכולה לקבל דירוג אחד בלבד, וכל דירוג שייך להזמנה אחת בלבד.
+מפתח זר:
+עמודת מזהה הזמנה בטבלת דירוגים מקושרת לעמודת מזהה הזמנה בטבלת הזמנות.
+יתרון הקשר:
+מאפשר הערכה של איכות האוכל והשירות למשלוחים לפי הזמנות ספציפיות, ומספק משוב חשוב לשיפור המסעדות
+
+
+אינטגרציה כוללת בין הטבלאות
+
+הטבלאות מחוברות באופן הבא:
+לקוחות ↔ הזמנות ↔ מסעדות:
+מאפשרים לנתח מי הזמין מהיכן ובאיזה תדירות
+
+
+הזמנות ↔ תשלומים:
+מספקים מידע על התשלומים שבוצעו עבור ההזמנות
+
+הזמנות ↔ דירוגים:
+מאפשרים לשלב נתוני תשלום ודירוג להזמנה אחת
+
